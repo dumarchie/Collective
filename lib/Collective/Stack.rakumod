@@ -6,10 +6,11 @@ class Collective::Stack {
 
     method new(**@values is raw --> ::?CLASS:D) {
         my $node = Collective::Node;
-        $node = $node.insert($_) for @values;
+        $node .= insert($_) for @values;
         self.CREATE!SET-SELF($node);
     }
 
+    my constant Absent = Mu.new;
     method pop(::?CLASS:D:) is nodal {
         my $value;
         cas $!top, {
@@ -18,18 +19,19 @@ class Collective::Stack {
                 .next;
             }
             else {
-                $value := Failure.new:
-                 X::Cannot::Empty.new(:action<pop>, :what(self.^name));
+                $value := Absent;
                 $_;
             }
         };
-        $value;
+        $value =:= Absent ?? Failure.new(
+          X::Cannot::Empty.new(:action<pop>, :what(self.^name))
+        ) !! $value;
     }
 
     method push(::?CLASS:D: **@values is raw --> ::?CLASS:D) {
         for @values -> \value {
             cas $!top, { .insert(value) };
-        };
+        }
         self;
     }
 
