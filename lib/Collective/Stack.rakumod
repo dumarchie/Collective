@@ -1,11 +1,26 @@
-use Collective::Node;
-
 class Collective::Stack {
-    has Collective::Node $!top;
+    # Private node definition, not to be exposed
+    my class Node {
+        has Mu $.value;
+        has Node $.next;
+        method !SET-SELF(Mu \value, \next) {
+            $!value := value;
+            $!next  := next;
+            self;
+        }
+
+        # Define insert method
+        method insert(::?CLASS: Mu \value) {
+            self.CREATE!SET-SELF(value<>, self);
+        }
+    }
+
+    # The actual stack definition
+    has Node $!top;
     method !SET-SELF($!top) { self }
 
     method new(**@values is raw --> ::?CLASS:D) {
-        my $node = Collective::Node;
+        my $node = Node;
         $node .= insert($_) for @values;
         self.CREATE!SET-SELF($node);
     }
