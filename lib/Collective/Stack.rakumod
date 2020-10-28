@@ -9,9 +9,12 @@ class Collective::Stack {
             self;
         }
 
-        # Define insert method
         method insert(::?CLASS: Mu \value) {
             self.CREATE!SET-SELF(value<>, self);
+        }
+
+        method append(::?CLASS: Node \tail) {
+            $!next := tail;
         }
     }
 
@@ -20,8 +23,8 @@ class Collective::Stack {
     method !SET-SELF($!top) { self }
 
     method new(**@values is raw --> ::?CLASS:D) {
-        my $node = Node;
-        $node .= insert($_) for @values;
+        my $node := Node;
+        $node := $node.insert($_) for @values;
         self.CREATE!SET-SELF($node);
     }
 
@@ -43,10 +46,25 @@ class Collective::Stack {
         ) !! $value;
     }
 
-    method push(::?CLASS:D: **@values is raw --> ::?CLASS:D) {
-        for @values -> \value {
-            cas $!top, { .insert(value) };
-        }
+    multi method push(::?CLASS:D: --> ::?CLASS:D) { self }
+    multi method push(::?CLASS:D: Mu \value --> ::?CLASS:D) {
+        cas $!top, { .insert(value) };
+        self;
+    }
+    # the multi above may cause a single argument not to slip
+    multi method push(::?CLASS:D: Slip:D \values --> ::?CLASS:D) {
+        self.push(|values);
+    }
+    multi method push(::?CLASS:D: Mu \value,
+                           **@values is raw --> ::?CLASS:D)
+    {
+        my \tail = Node.insert(value<>);
+        my $head := tail;
+        $head := $head.insert($_) for @values;
+        cas $!top, {
+            tail.append($_);
+            $head;
+        };
         self;
     }
 
