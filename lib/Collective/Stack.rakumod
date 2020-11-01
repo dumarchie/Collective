@@ -9,8 +9,8 @@ class Collective::Stack {
             self;
         }
 
-        method insert(::?CLASS: Mu \value) {
-            self.CREATE!SET-SELF(value<>, self);
+        method insert(Node: Mu \value is readonly --> Node:D) {
+            self.CREATE!SET-SELF(value, self);
         }
     }
 
@@ -20,7 +20,7 @@ class Collective::Stack {
 
     method new(**@values is raw --> ::?CLASS:D) {
         my $node := Node;
-        $node := $node.insert($_) for @values;
+        $node := $node.insert($_<>) for @values;
         self.CREATE!SET-SELF($node);
     }
 
@@ -42,11 +42,13 @@ class Collective::Stack {
         ) !! $value;
     }
 
-    multi method push(::?CLASS:D: Mu \value --> ::?CLASS:D) {
+    multi method push(::?CLASS:D: Mu \value is readonly --> ::?CLASS:D) {
         cas $!top, { .insert(value) };
         self;
     }
-    # Now we need a candidate for Slip to make a single argument slip
+    multi method push(::?CLASS:D: Mu $value is rw --> ::?CLASS:D) {
+        self.push($value<>);
+    }
     multi method push(::?CLASS:D: Slip:D \values --> ::?CLASS:D) {
         self.push($_) for values;
         self;
