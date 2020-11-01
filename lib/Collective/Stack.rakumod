@@ -12,10 +12,6 @@ class Collective::Stack {
         method insert(::?CLASS: Mu \value) {
             self.CREATE!SET-SELF(value<>, self);
         }
-
-        method append(::?CLASS: Node \tail) {
-            $!next := tail;
-        }
     }
 
     # The actual stack definition
@@ -46,25 +42,17 @@ class Collective::Stack {
         ) !! $value;
     }
 
-    multi method push(::?CLASS:D: --> ::?CLASS:D) { self }
     multi method push(::?CLASS:D: Mu \value --> ::?CLASS:D) {
         cas $!top, { .insert(value) };
         self;
     }
-    # the multi above may cause a single argument not to slip
+    # Now we need a candidate for Slip to make a single argument slip
     multi method push(::?CLASS:D: Slip:D \values --> ::?CLASS:D) {
-        self.push(|values);
+        self.push($_) for values;
+        self;
     }
-    multi method push(::?CLASS:D: Mu \value,
-                           **@values is raw --> ::?CLASS:D)
-    {
-        my \tail = Node.insert(value<>);
-        my $head := tail;
-        $head := $head.insert($_) for @values;
-        cas $!top, {
-            tail.append($_);
-            $head;
-        };
+    multi method push(::?CLASS:D: **@values is raw --> ::?CLASS:D) {
+        self.push($_) for @values;
         self;
     }
 
@@ -132,7 +120,8 @@ Defined as:
 
     method push(Collective::Stack:D: **@values --> Collective::Stack:D)
 
-Puts the C<@values> on top of the stack and returns the modified stack.
+Puts the values onto the stack and returns the modified stack. It is
+I<not> particularly efficient to push more than one value at a time.
 
 =head2 method clone
 
@@ -140,8 +129,8 @@ Defined as:
 
     method clone(Collective::Stack:D: --> Collective::Stack:D)
 
-Returns a clone of the original stack. This operation takes constant
-time.
+Returns a clone of the original stack. This is a very efficient
+operation because the underlying implementation is persistent.
 
 =head2 method peek
 
