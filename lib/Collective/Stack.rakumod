@@ -28,22 +28,14 @@ class Collective::Stack {
         self.CREATE!SET-SELF($node);
     }
 
-    my constant Absent = Mu.new;
     method pop(::?CLASS:D:) is nodal {
-        my $value;
-        cas $!top, {
-            if $_ {
-                $value := .value;
-                .next;
-            }
-            else {
-                $value := Absent;
-                $_;
-            }
-        };
-        $value =:= Absent ?? Failure.new(
+        my $node := ⚛$!top;
+        while $node && cas($!top, $node, $node.next) !=== $node {
+            $node := ⚛$!top;
+        }
+        $node ?? $node.value !! Failure.new(
           X::Cannot::Empty.new(:action<pop>,:what(self.^name))
-        ) !! $value;
+        );
     }
 
     multi method push(::?CLASS:D: Mu \value --> ::?CLASS:D) {
