@@ -9,8 +9,12 @@ class Collective::Stack {
             self;
         }
 
-        method insert(Node: Mu \value is readonly --> Node:D) {
+        proto method insert(|) {*}
+        multi method insert(Node: Mu \value is readonly --> Node:D) {
             self.CREATE!SET-SELF(value, self);
+        }
+        multi method insert(Node: Mu $value is rw --> Node:D) {
+            self.CREATE!SET-SELF($value<>, self);
         }
     }
 
@@ -38,22 +42,24 @@ class Collective::Stack {
             }
         };
         $value =:= Absent ?? Failure.new(
-          X::Cannot::Empty.new(:action<pop>, :what(self.^name))
+          X::Cannot::Empty.new(:action<pop>,:what(self.^name))
         ) !! $value;
     }
 
-    multi method push(::?CLASS:D: Mu \value is readonly --> ::?CLASS:D) {
+    multi method push(::?CLASS:D: Mu \value --> ::?CLASS:D) {
         cas $!top, { .insert(value) };
         self;
     }
-    multi method push(::?CLASS:D: Mu $value is rw --> ::?CLASS:D) {
-        self.push($value<>);
-    }
-    multi method push(::?CLASS:D: Slip:D \values --> ::?CLASS:D) {
-        self.push($_) for values;
-        self;
+    multi method push(::?CLASS:D: Slip:D \value --> ::?CLASS:D) {
+        self!push-list(value);
     }
     multi method push(::?CLASS:D: **@values is raw --> ::?CLASS:D) {
+        self!push-list(@values);
+    }
+    method !push-list(::?CLASS:D: @values --> ::?CLASS:D) {
+        X::Cannot::Lazy.new(:action<push>,:what(self.^name)).throw
+          if @values.is-lazy;
+
         self.push($_) for @values;
         self;
     }
@@ -122,8 +128,7 @@ Defined as:
 
     method push(Collective::Stack:D: **@values --> Collective::Stack:D)
 
-Puts the values onto the stack and returns the modified stack. It is
-I<not> particularly efficient to push more than one value at a time.
+Puts the values on the stack and returns the modified stack.
 
 =head2 method clone
 

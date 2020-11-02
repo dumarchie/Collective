@@ -19,8 +19,9 @@ subtest 'empty stack', {
     cmp-ok $stack.peek, '===', Nil,
       '$stack.peek returns Nil';
 
-    fails-like { $stack.pop }, X::Cannot::Empty,
-      '$stack.pop', action => 'pop', what => $stack.^name;
+    fails-like { $stack.pop },
+      X::Cannot::Empty, :action<pop>, :what($stack.^name),
+      '$stack.pop';
 };
 
 subtest 'push nothing onto a stack', {
@@ -34,8 +35,9 @@ subtest 'push nothing onto a stack', {
     cmp-ok $stack.peek, '===', Nil,
       '$stack.peek still returns Nil';
 
-    fails-like { $stack.pop }, X::Cannot::Empty,
-      '$stack.pop', action => 'pop', what => $stack.^name;
+    fails-like { $stack.pop },
+      X::Cannot::Empty, :action<pop>, :what($stack.^name),
+      '$stack.pop';
 }
 
 # define unique test values
@@ -85,10 +87,10 @@ subtest 'push multiple values onto a stack', {
 }
 
 subtest 'push a slip onto a stack', {
-    plan 3;
+    plan 4;
 
-    cmp-ok $stack.push(slip(a, b)), '===', $stack,
-      '$stack.push(slip(a, b)) returns the $stack';
+    cmp-ok $stack.push(slip a, b), '===', $stack,
+      '$stack.push(slip a, b) returns the $stack';
 
     cmp-ok $stack.peek, '=:=', b,
       '$stack.peek returns the last value of the slip';
@@ -101,6 +103,10 @@ subtest 'push a slip onto a stack', {
         cmp-ok got, '=:=', b,
           '... and returns it';
     }
+
+    throws-like { $stack.push(slip lazy a, b) },
+      X::Cannot::Lazy, action => 'push', what => $stack.^name,
+      '$stack.push(slip lazy a, b)';
 }
 
 subtest 'create a stack with values', {
