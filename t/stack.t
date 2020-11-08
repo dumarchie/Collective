@@ -110,7 +110,7 @@ subtest 'push a slip onto a stack', {
 }
 
 subtest 'create a stack with values', {
-    plan 4;
+    plan 5;
 
     my $a = a;
     my $b = b;
@@ -132,6 +132,10 @@ subtest 'create a stack with values', {
         cmp-ok got, '=:=', b,
           '... and returns it';
     }
+
+    throws-like { Collective::Stack.new(slip lazy a, b) },
+      X::Cannot::Lazy, action => 'stack',
+      'Collective::Stack.new(slip lazy a, b)';
 }
 
 subtest 'clone a stack', {

@@ -23,8 +23,11 @@ class Collective::Stack {
     method !SET-SELF($!top) { self }
 
     method new(**@values is raw --> ::?CLASS:D) {
+        X::Cannot::Lazy.new(:action<stack>).throw
+          if @values.is-lazy;
+
         my $node := Node;
-        $node := $node.insert($_<>) for @values;
+        $node := $node.insert($_) for @values;
         self.CREATE!SET-SELF($node);
     }
 
@@ -102,10 +105,7 @@ Defined as:
     method pop(Collective::Stack:D:)
 
 Removes a value from the top of the stack and returns it. Fails if the
-stack is empty.
-
-This method may be called via the homonymous array operator. For
-example:
+stack is empty. For example:
 
     my $stack = Collective::Stack.new('a', 'b');
     $stack.pop; # b
