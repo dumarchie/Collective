@@ -17,7 +17,7 @@ sub shares(Int $ops, Int $workers, Str $type) {
     @ranges;
 }
 
-sub producers($stack, Int() $ops, Int() $workers, :$batch) {
+sub producers(Int() $ops, Int() $workers, :$batch) {
     my @workers;
     for shares($ops, $workers, 'producer') -> @values {
         my $id    = @workers + 1;
@@ -29,7 +29,7 @@ sub producers($stack, Int() $ops, Int() $workers, :$batch) {
             @values := @slips;
         }
 
-        @workers.push: {
+        @workers.push: -> $stack {
             say "Start producer $id";
             my int $count;
             for @values {
@@ -43,7 +43,7 @@ sub producers($stack, Int() $ops, Int() $workers, :$batch) {
     @workers;
 }
 
-sub consumers($stack, Int() $ops, Int() $workers, :$no-retry) {
+sub consumers(Int() $ops, Int() $workers) {
     my @workers;
     my &format = -> $id, $count, $consumed {
        "Consumer $id needed %0.3f seconds and $count calls"
@@ -54,14 +54,7 @@ sub consumers($stack, Int() $ops, Int() $workers, :$no-retry) {
         my $share = @range.max - @range.min;
 
         my int $consumed;
-        @workers.push: $no-retry ?? {
-            say "Start consumer $id";
-            my $value;
-            for @range {
-                $consumed++ if $stack.pop;
-            };
-            format($id, $share, $consumed);
-        } !! {
+        @workers.push: -> $stack {
             say "Start consumer $id";
             my int $calls;
             while $consumed < $share {
@@ -74,21 +67,20 @@ sub consumers($stack, Int() $ops, Int() $workers, :$no-retry) {
     @workers;
 }
 
-sub timer(&code) {
+sub timer(&code, |args) {
     my \started = now;
-    say sprintf code, now - started;
+    say sprintf code(|args), now - started;
 }
 
 sub MAIN(
-    Int   $values?   is copy, #= number of values to push and pop
+    Int   $elems?    is copy, #= number of values to push and pop
     Int  :$producers is copy, #= number of workers that push values
     Int  :$batch = 1,         #= number of values to push at a time
     Int  :$consumers is copy, #= number of workers that pop values
-    Bool :$no-retry  is copy, #= don't retry if pop fails
     Bool :$reverse            #= start consumers before producers
 ) {
     my \cores = $*KERNEL.cpu-cores - 1;
-    $values //= cores * 100_000;
+    $elems //= cores * 100_000;
 
     with $consumers {
         $producers //= cores - $consumers;
@@ -98,20 +90,30 @@ sub MAIN(
         $consumers   = cores - $producers;
     }
 
-    if $consumers > 0 {
-        note "WARNING: Consumers will retry until Ctrl+C"
-         unless $producers > 0 || $no-retry
-    }
-
-    my \stack     = Collective::Stack.new;
-    my @workers   = producers(stack, $values, $producers, :$batch);
-    my @consumers = consumers(stack, $values, $consumers, :$no-retry);
+    my @workers   = producers($elems, $producers, :$batch);
+    my @consumers = consumers($elems, $consumers);
     $reverse ?? @workers.prepend(@consumers)
              !! @workers.append(@consumers);
 
+    my $stack;
     timer {
-        await @workers.map: -> &code { start timer &code };
+        if $producers > 0 {
+            $stack := Collective::Stack.new;
+        }
+        else {
+            timer {
+                $stack := Collective::Stack.new: slip 1..$elems;
+                "Constructor spent %.3f seconds stacking $elems values";
+            };
+        }
+
+        if @workers > 1 {
+            await @workers.map: -> &code { start timer &code, $stack };
+        }
+        elsif @workers {
+            timer @workers[0], $stack
+        }
         'Total time spent: %.3f seconds';
     }
-    say 'Top value: ' ~ stack.peek.raku;
+    say 'Top value: ' ~ $stack.peek.raku;
 }
