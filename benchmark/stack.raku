@@ -43,7 +43,7 @@ sub producers(Int() $ops, Int() $workers, :$batch) {
     @workers;
 }
 
-sub consumers(Int() $ops, Int() $workers) {
+sub consumers(Int() $ops, Int() $workers, :$pop-n) {
     my @workers;
     my &format = -> $id, $count, $consumed {
        "Consumer $id needed %0.3f seconds and $count calls"
@@ -54,7 +54,15 @@ sub consumers(Int() $ops, Int() $workers) {
         my $share = @range.max - @range.min;
 
         my int $consumed;
-        @workers.push: -> $stack {
+        @workers.push: $pop-n ?? -> $stack {
+            say "Start consumer $id";
+            my int $calls;
+            while $consumed < $share {
+                $calls++;
+                $consumed++ for $stack.pop($share - $consumed);
+            }
+            format($id, $calls, $consumed);
+        } !! -> $stack {
             say "Start consumer $id";
             my int $calls;
             while $consumed < $share {
@@ -77,6 +85,7 @@ sub MAIN(
     Int  :$producers is copy, #= number of workers that push values
     Int  :$batch = 1,         #= number of values to push at a time
     Int  :$consumers is copy, #= number of workers that pop values
+    Bool :$pop-n,             #= pop sequences of values
     Bool :$reverse            #= start consumers before producers
 ) {
     my \cores = $*KERNEL.cpu-cores - 1;
@@ -91,7 +100,7 @@ sub MAIN(
     }
 
     my @workers   = producers($elems, $producers, :$batch);
-    my @consumers = consumers($elems, $consumers);
+    my @consumers = consumers($elems, $consumers, :$pop-n);
     $reverse ?? @workers.prepend(@consumers)
              !! @workers.append(@consumers);
 

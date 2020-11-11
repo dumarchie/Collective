@@ -31,14 +31,27 @@ class Collective::Stack {
         self.CREATE!SET-SELF($node);
     }
 
-    method pop(::?CLASS:D:) is nodal {
-        my $node := ⚛$!top;
-        while $node && cas($!top, $node, $node.next) !=== $node {
-            $node := ⚛$!top;
-        }
-        $node ?? $node.value !! Failure.new(
+    proto method pop(|) {*}
+    multi method pop(::?CLASS:D:) is nodal {
+        my \node = self!pop-node;
+        node ?? node.value !! Failure.new:
           X::Cannot::Empty.new(:action<pop>,:what(self.^name))
-        );
+    }
+    multi method pop(::?CLASS:D: Whatever --> Seq:D) {
+        gather while my \node = self!pop-node {
+            take node.value;
+        }
+    }
+    multi method pop(::?CLASS:D: $n --> Seq:D) {
+        self.pop(*).head($n);
+    }
+    method !pop-node(::?CLASS:D: --> Node) {
+        my $node;
+        cas $!top, {
+            $node := $_;
+            $node && $node.next;
+        };
+        $node;
     }
 
     multi method push(::?CLASS:D: Mu \value --> ::?CLASS:D) {
@@ -102,17 +115,21 @@ each value is placed on top of the preceding values.
 
 Defined as:
 
-    method pop(Collective::Stack:D:)
+    multi method pop(Collective::Stack:D:)
+    multi method pop(Collective::Stack:D: $n --> Seq:D)
 
-Removes a value from the top of the stack and returns it. Fails if the
-stack is empty. For example:
+Without argument, this method behaves like the corresponding C<Array>
+method: it removes and returns a value from the top of the stack, or
+fails if the stack is empty.
 
-    my $stack = Collective::Stack.new('a', 'b');
-    $stack.pop; # b
-    pop $stack; # a
-    pop $stack;
-    CATCH { default { put .^name, ': ', .message } }; # OUTPUT:
-    # «X::Cannot::Empty: Cannot pop from an empty Collective::Stack␤»
+If called with an argument, it returns a C<Seq> that pops values I<on
+demand> until C<$n> values have been popped or the stack is empty. For
+example:
+
+    my $stack = Collective::Stack.new('a');
+    my $seq = $stack.pop(*);
+    $stack.push('b');
+    say $seq.join(' on top of '); # OUTPUT: «b on top of a␤»
 
 =head2 method push
 

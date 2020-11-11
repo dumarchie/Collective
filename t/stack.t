@@ -4,7 +4,7 @@ use Test;
 use lib 'lib';
 use Collective::Stack;
 
-plan 7;
+plan 9;
 
 my $stack;
 subtest 'empty stack', {
@@ -136,6 +136,34 @@ subtest 'create a stack with values', {
     throws-like { Collective::Stack.new(slip lazy a, b) },
       X::Cannot::Lazy, action => 'stack',
       'Collective::Stack.new(slip lazy a, b)';
+}
+
+subtest '.pop(Whatever)', {
+    plan 3;
+
+    my $stack = Collective::Stack.new('a');
+    my $seq = $stack.pop(*);
+    isa-ok $seq, Seq, 'my $seq = $stack.pop(*)';
+
+    $stack.push('b');
+    is $seq.join(' on top of '), 'b on top of a',
+      '$seq produces values on demand';
+
+    ok !$stack, 'values are removed from the $stack';
+}
+
+subtest '.pop(Int)', {
+    plan 3;
+
+    my $stack = Collective::Stack.new('a', 'b');
+    my $seq = $stack.pop(2);
+    isa-ok $seq, Seq, 'my $seq = $stack.pop(2)';
+
+    $stack.push('c');
+    is $seq.join(' on top of '), 'c on top of b',
+      '$seq produces values on demand';
+
+    is $stack.peek, 'a', 'values are removed from the $stack';
 }
 
 subtest 'clone a stack', {
