@@ -31,19 +31,28 @@ class Collective::Stack {
         self.CREATE!SET-SELF($node);
     }
 
+    my class ValueConsumer does Iterator {
+        has &.extract;
+
+        method pull-one() {
+            if my \node = &!extract() {
+                node.value;
+            }
+            else {
+                IterationEnd;
+            }
+        }
+    }
+
     proto method pop(|) {*}
     multi method pop(::?CLASS:D:) is nodal {
         my \node = self!pop-node;
         node ?? node.value !! Failure.new:
           X::Cannot::Empty.new(:action<pop>,:what(self.^name))
     }
-    multi method pop(::?CLASS:D: Whatever --> Seq:D) {
-        gather while my \node = self!pop-node {
-            take node.value;
-        }
-    }
     multi method pop(::?CLASS:D: $n --> Seq:D) {
-        self.pop(*).head($n);
+        my &extract = { self!pop-node };
+        Seq.new(ValueConsumer.new(:&extract)).head($n);
     }
     method !pop-node(::?CLASS:D: --> Node) {
         my $node;
