@@ -33,34 +33,33 @@ class Collective::Stack {
 
     my class ValueConsumer does Iterator {
         has &.extract;
-
-        method pull-one() {
-            if my \node = &!extract() {
-                node.value;
-            }
-            else {
-                IterationEnd;
-            }
-        }
+        method pull-one() { &!extract() }
     }
 
     proto method pop(|) {*}
     multi method pop(::?CLASS:D:) is nodal {
-        my \node = self!pop-node;
-        node ?? node.value !! Failure.new:
+        my \value = self!extract;
+        value =:= IterationEnd ?? Failure.new(
           X::Cannot::Empty.new(:action<pop>,:what(self.^name))
+        ) !! value;
     }
     multi method pop(::?CLASS:D: $n --> Seq:D) {
-        my &extract = { self!pop-node };
+        my &extract = { self!extract };
         Seq.new(ValueConsumer.new(:&extract)).head($n);
     }
-    method !pop-node(::?CLASS:D: --> Node) {
-        my $node;
+    method !extract(::?CLASS:D:) {
+        my $value;
         cas $!top, {
-            $node := $_;
-            $node && $node.next;
+            if $_ {
+                $value := .value;
+                .next;
+            }
+            else {
+                $value := IterationEnd;
+                $_;
+            }
         };
-        $node;
+        $value;
     }
 
     multi method push(::?CLASS:D: Mu \value --> ::?CLASS:D) {
