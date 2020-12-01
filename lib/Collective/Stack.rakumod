@@ -48,17 +48,12 @@ class Collective::Stack {
         Seq.new(ValueConsumer.new(:&extract)).head($n);
     }
     method !extract(::?CLASS:D:) {
-        my $value;
-        cas $!top, {
-            if $_ {
-                $value := .value;
-                .next;
+        my $value := IterationEnd;
+        while $value =:= IterationEnd && my $node := ⚛$!top {
+            if cas($!top, $node, $node.next) =:= $node {
+                $value := $node.value;
             }
-            else {
-                $value := IterationEnd;
-                $_;
-            }
-        };
+        }
         $value;
     }
 
