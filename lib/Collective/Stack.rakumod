@@ -43,14 +43,14 @@ class Collective::Stack {
         method pull-one() { &!extract() }
     }
 
-    proto method pop(|) {*}
-    multi method pop(::?CLASS:D:) is nodal {
+    proto method pop(::?CLASS:D: $n?) is nodal {*}
+    multi method pop() {
         my \value = self!extract;
         value =:= IterationEnd ?? Failure.new(
           X::Cannot::Empty.new(:action<pop>,:what(self.^name))
         ) !! value;
     }
-    multi method pop(::?CLASS:D: $n --> Seq:D) {
+    multi method pop($n) {
         my &extract = { self!extract };
         Seq.new(ValueConsumer.new(:&extract)).head($n);
     }
@@ -125,8 +125,7 @@ each value is placed on top of the preceding values.
 
 Defined as:
 
-    multi method pop(Collective::Stack:D:)
-    multi method pop(Collective::Stack:D: $n --> Seq:D)
+    proto method pop(::?CLASS:D: $n?) is nodal
 
 Without argument, this method behaves like the corresponding C<Array>
 method: it removes and returns a value from the top of the stack, or
