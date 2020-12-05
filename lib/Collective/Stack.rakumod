@@ -64,14 +64,15 @@ class Collective::Stack {
         $value;
     }
 
-    multi method push(::?CLASS:D: Mu \value --> ::?CLASS:D) {
+    proto method push(::?CLASS:D: **@values is raw --> ::?CLASS:D) {*}
+    multi method push(Mu \value) {
         cas $!top, { .insert(value) };
         self;
     }
-    multi method push(::?CLASS:D: Slip:D \value --> ::?CLASS:D) {
-        self!push-list(value);
+    multi method push(Slip:D \values) {
+        self!push-list(values);
     }
-    multi method push(::?CLASS:D: **@values is raw --> ::?CLASS:D) {
+    multi method push(**@values is raw) {
         self!push-list(@values);
     }
     method !push-list(::?CLASS:D: @values --> ::?CLASS:D) {
@@ -144,7 +145,7 @@ example:
 
 Defined as:
 
-    method push(Collective::Stack:D: **@values --> Collective::Stack:D)
+    proto method push(::?CLASS:D: **@values is raw --> ::?CLASS:D)
 
 Puts the values on the stack and returns the modified stack.
 
