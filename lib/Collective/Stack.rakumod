@@ -3,17 +3,17 @@ class Collective::Stack {
     my class Node {
         has Mu $.value;
         has Node $.next;
-        method !SET-SELF(Mu \value, \next) {
+        method !SET-SELF(Mu \value, Node \next --> Node:D) {
             $!value := value;
             $!next  := next;
             self;
         }
 
-        proto method insert(|) {*}
-        multi method insert(Node: Mu \value is readonly --> Node:D) {
+        proto method insert(Mu $ --> Node:D) {*}
+        multi method insert(Mu \value is readonly) {
             self.CREATE!SET-SELF(value, self);
         }
-        multi method insert(Node: Mu $value is rw --> Node:D) {
+        multi method insert(Mu $value is rw) {
             self.CREATE!SET-SELF($value<>, self);
         }
     }
