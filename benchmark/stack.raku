@@ -111,7 +111,7 @@ sub MAIN(
         }
         else {
             timer {
-                $stack := Collective::Stack.new: slip 1..$elems;
+                $stack := Collective::Stack.new: 1..$elems;
                 "Constructor spent %.3f seconds stacking $elems values";
             };
         }

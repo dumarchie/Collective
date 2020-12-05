@@ -4,10 +4,10 @@ use Test;
 use lib 'lib';
 use Collective::Stack;
 
-plan 9;
+plan 10;
 
 my $stack;
-subtest 'empty stack', {
+subtest 'create empty stack', {
     plan 4;
 
     $stack = Collective::Stack.new;
@@ -109,33 +109,56 @@ subtest 'push a slip onto a stack', {
       '$stack.push(slip lazy a, b)';
 }
 
-subtest 'create a stack with values', {
+subtest 'create a stack from a single Iterable', {
     plan 5;
 
-    my $a = a;
-    my $b = b;
-    $stack = Collective::Stack.new($a, $b);
+    my @values = a, b;
+    $stack = Collective::Stack.new(@values);
     isa-ok $stack, Collective::Stack,
-      '$stack = Collective::Stack.new($a, $b)';
+      '$stack = Collective::Stack.new(@values)';
 
     ok $stack, '$stack evaluates to True';
 
-    $b = Any.new;
+    @values[1] = Any.new;
     cmp-ok $stack.peek, '=:=', b,
-      '$stack.peek returns the value of $b';
+      '$stack.peek returns the original value of @values.tail';
 
     subtest '$stack.pop', {
         my \got = $stack.pop;
         cmp-ok $stack.peek, '=:=', a,
-          '$stack.pop removes the value of $b from the $stack';
+          '$stack.pop removes the last value from the $stack';
 
         cmp-ok got, '=:=', b,
           '... and returns it';
     }
 
-    throws-like { Collective::Stack.new(slip lazy a, b) },
+    throws-like { Collective::Stack.new(lazy @values) },
       X::Cannot::Lazy, action => 'stack',
-      'Collective::Stack.new(slip lazy a, b)';
+      'Collective::Stack.new(lazy @values)';
+}
+
+subtest 'create a stack from multiple arguments', {
+    plan 4;
+
+    my @values = a, b;
+    $stack = Collective::Stack.new(@values, lazy @values);
+    isa-ok $stack, Collective::Stack,
+      '$stack = Collective::Stack.new(@values, lazy @values)';
+
+    ok $stack, '$stack evaluates to True';
+
+    @values[1] = Any.new;
+    is $stack.peek, lazy @values,
+      '$stack.peek returns lazy @values';
+
+    subtest '$stack.pop', {
+        my \got = $stack.pop;
+        cmp-ok $stack.peek, '=:=', @values,
+          '$stack.pop removes the lazy @values from the $stack';
+
+        is got, lazy @values,
+          '... and returns it';
+    }
 }
 
 subtest '.pop(Whatever)', {

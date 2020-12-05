@@ -22,13 +22,20 @@ class Collective::Stack {
     has Node $!top;
     method !SET-SELF($!top) { self }
 
-    method new(**@values is raw --> ::?CLASS:D) {
+    proto method new(+values --> ::?CLASS:D) {*}
+    multi method new() {
+        self.CREATE!SET-SELF(Node);
+    }
+    multi method new(Iterable \values is readonly) {
         X::Cannot::Lazy.new(:action<stack>).throw
-          if @values.is-lazy;
+          if values.is-lazy;
 
         my $node := Node;
-        $node := $node.insert($_) for @values;
+        $node := $node.insert($_) for values;
         self.CREATE!SET-SELF($node);
+    }
+    multi method new(**@values is raw) {
+        self.new(@values);
     }
 
     my class ValueConsumer does Iterator {
@@ -109,7 +116,7 @@ efficient stack implementation for a single-threaded use case.
 
 Defined as:
 
-    method new(**@values --> Collective::Stack:D)
+    proto method new(+values --> ::?CLASS:D)
 
 Creates and returns a new stack with the provided values. Figuratively,
 each value is placed on top of the preceding values.
