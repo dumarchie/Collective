@@ -107,11 +107,11 @@ sub MAIN(
     my $stack;
     timer {
         if $producers > 0 {
-            $stack := Collective::Stack.new;
+            $stack := stack;
         }
         else {
             timer {
-                $stack := Collective::Stack.new: 1..$elems;
+                $stack := stack 1..$elems;
                 "Constructor spent %.3f seconds stacking $elems values";
             };
         }

@@ -7,21 +7,16 @@ use Collective::Stack;
 plan 11;
 
 my $stack;
-subtest 'create empty stack', {
+subtest 'create an empty stack', {
     plan 4;
 
-    $stack = Collective::Stack.new;
-    isa-ok $stack, Collective::Stack,
-      '$stack = Collective::Stack.new';
-
+    $stack = stack;
+    isa-ok $stack, Collective::Stack, '$stack = stack';
     nok $stack, '$stack evaluates to False';
-
-    cmp-ok $stack.peek, '===', Nil,
-      '$stack.peek returns Nil';
-
+    cmp-ok $stack.peek, '===', Nil, '$stack.peek returns Nil';
     fails-like { $stack.pop },
       X::Cannot::Empty, :action<pop>, :what($stack.^name),
-      '$stack.pop';
+      '$stack.pop fails';
 };
 
 subtest 'push nothing onto a stack', {
@@ -31,13 +26,10 @@ subtest 'push nothing onto a stack', {
       '$stack.push() returns the $stack';
 
     nok $stack, '$stack still evaluates to False';
-
-    cmp-ok $stack.peek, '===', Nil,
-      '$stack.peek still returns Nil';
-
+    cmp-ok $stack.peek, '===', Nil, '$stack.peek still returns Nil';
     fails-like { $stack.pop },
       X::Cannot::Empty, :action<pop>, :what($stack.^name),
-      '$stack.pop';
+      '$stack.pop still fails';
 }
 
 # define unique test values
@@ -55,7 +47,7 @@ subtest 'push a single value onto a stack', {
 
     $a = Any.new;
     cmp-ok $stack.peek, '=:=', a,
-      '$stack.peek returns the value of $a';
+     '$stack.peek returns the original value of $a';
 
     subtest '$stack.pop', {
         my \got = $stack.pop;
@@ -74,39 +66,37 @@ subtest 'push multiple values onto a stack', {
 
     $b = Any.new;
     cmp-ok $stack.peek, '=:=', b,
-      '$stack.peek returns the value of $b';
-
-    subtest '$stack.pop', {
-        my \got = $stack.pop;
-        cmp-ok $stack.peek, '=:=', a,
-          '$stack.pop removes the value of $b from the $stack';
-
-        cmp-ok got, '=:=', b,
-          '... and returns it';
-    }
-}
-
-subtest 'push a slip onto a stack', {
-    plan 4;
-
-    cmp-ok $stack.push(slip a, b), '===', $stack,
-      '$stack.push(slip a, b) returns the $stack';
-
-    cmp-ok $stack.peek, '=:=', b,
-      '$stack.peek returns the last value of the slip';
+      '$stack.peek returns the original value of $b';
 
     subtest '$stack.pop', {
         my \got = $stack.pop;
         cmp-ok $stack.peek, '=:=', a,
           '$stack.pop removes the value from the $stack';
 
-        cmp-ok got, '=:=', b,
-          '... and returns it';
+        cmp-ok got, '=:=', b, '... and returns it';
+    }
+}
+
+subtest 'push a Slip onto a stack', {
+    plan 4;
+
+    cmp-ok $stack.push(slip a, b), '===', $stack,
+      '$stack.push(slip a, b) returns the $stack';
+
+    cmp-ok $stack.peek, '=:=', b,
+      '$stack.peek returns the last value in the Slip';
+
+    subtest '$stack.pop', {
+        my \got = $stack.pop;
+        cmp-ok $stack.peek, '=:=', a,
+          '$stack.pop removes the value from the $stack';
+
+        cmp-ok got, '=:=', b, '... and returns it';
     }
 
     throws-like { $stack.push(slip lazy a, b) },
       X::Cannot::Lazy, action => 'push', what => $stack.^name,
-      '$stack.push(slip lazy a, b)';
+      '$stack.push(slip lazy a, b) throws';
 }
 
 subtest 'push onto an undefined stack', {
@@ -118,66 +108,61 @@ subtest 'push onto an undefined stack', {
     cmp-ok $stack.push($a, $b), '===', $stack,
       '$stack.push($a, $b) returns the $stack';
 
-    ok $stack.defined, '... which is autovivified';
+    ok $stack.defined, '$stack is autovivified';
 
     $b = Any.new;
     cmp-ok $stack.peek, '=:=', b,
-      '$stack.peek returns the value of $b';
+      '$stack.peek returns the original value of $b';
 }
 
-subtest 'create a stack from a single Iterable', {
+subtest 'create a stack from a non-itemized Iterable', {
     plan 5;
 
     my @values = a, b;
-    $stack = Collective::Stack.new(@values);
-    isa-ok $stack, Collective::Stack,
-      '$stack = Collective::Stack.new(@values)';
-
+    $stack = stack @values;
+    isa-ok $stack, Collective::Stack, '$stack = stack @values';
     ok $stack, '$stack evaluates to True';
 
     @values[1] = Any.new;
     cmp-ok $stack.peek, '=:=', b,
-      '$stack.peek returns the original value of @values.tail';
+      '$stack.peek returns the original @values.tail';
 
     subtest '$stack.pop', {
         my \got = $stack.pop;
         cmp-ok $stack.peek, '=:=', a,
-          '$stack.pop removes the last value from the $stack';
+          '$stack.pop removes the value from the $stack';
 
-        cmp-ok got, '=:=', b,
-          '... and returns it';
+        cmp-ok got, '=:=', b, '... and returns it';
     }
 
     throws-like { Collective::Stack.new(lazy @values) },
       X::Cannot::Lazy, action => 'stack',
-      'Collective::Stack.new(lazy @values)';
+      'Collective::Stack.new(lazy @values) throws';
 }
 
 subtest 'create a stack from multiple arguments', {
     plan 4;
 
     my @values = a, b;
-    $stack = Collective::Stack.new(@values, lazy @values);
+    $stack = stack @values, lazy @values;
     isa-ok $stack, Collective::Stack,
-      '$stack = Collective::Stack.new(@values, lazy @values)';
+      '$stack = stack @values, lazy @values';
 
     ok $stack, '$stack evaluates to True';
 
     @values[1] = Any.new;
-    is $stack.peek, lazy @values,
-      '$stack.peek returns lazy @values';
+    is $stack.peek, lazy @values, '$stack.peek returns the lazy @values';
 
     subtest '$stack.pop', {
         my \got = $stack.pop;
         cmp-ok $stack.peek, '=:=', @values,
           '$stack.pop removes the lazy @values from the $stack';
 
-        is got, lazy @values,
-          '... and returns it';
+        is got, lazy @values, '... and returns them';
     }
 }
 
-subtest '.pop(Whatever)', {
+subtest 'pop whatever is on the stack', {
     plan 3;
 
     my $stack = Collective::Stack.new('a');
@@ -191,7 +176,7 @@ subtest '.pop(Whatever)', {
     ok !$stack, 'values are removed from the $stack';
 }
 
-subtest '.pop(Int)', {
+subtest 'pop up to $n values', {
     plan 3;
 
     my $stack = Collective::Stack.new('a', 'b');
@@ -209,8 +194,7 @@ subtest 'clone a stack', {
     plan 2;
 
     my $clone = $stack.clone;
-    isa-ok $clone, Collective::Stack,
-      'my $clone = $stack.clone';
+    isa-ok $clone, Collective::Stack, 'my $clone = $stack.clone';
 
     $clone.pop;
     ok $stack, 'modifying the $clone does not modify the $stack';
