@@ -38,6 +38,30 @@ class Collective::Stack {
         self.new(@values);
     }
 
+    proto method push(**@values is raw --> ::?CLASS:D) is nodal {*}
+    multi method push(::?CLASS:U $target is rw: **@values is raw) {
+        # even autovivification requires concurrency control
+        cas $target, { $_ // .new };
+        $target.push(|@values);
+    }
+    multi method push(::?CLASS:D: Mu \value) {
+        cas $!top, { .insert(value) };
+        self;
+    }
+    multi method push(::?CLASS:D: Slip:D \values) {
+        self!push-list(values);
+    }
+    multi method push(::?CLASS:D: **@values is raw) {
+        self!push-list(@values);
+    }
+    method !push-list(::?CLASS:D: @values --> ::?CLASS:D) {
+        X::Cannot::Lazy.new(:action<push>,:what(self.^name)).throw
+          if @values.is-lazy;
+
+        self.push($_) for @values;
+        self;
+    }
+
     my class ValueConsumer does Iterator {
         has &.extract;
         method pull-one() { &!extract() }
@@ -62,25 +86,6 @@ class Collective::Stack {
             }
         }
         $value;
-    }
-
-    proto method push(::?CLASS:D: **@values is raw --> ::?CLASS:D) {*}
-    multi method push(Mu \value) {
-        cas $!top, { .insert(value) };
-        self;
-    }
-    multi method push(Slip:D \values) {
-        self!push-list(values);
-    }
-    multi method push(**@values is raw) {
-        self!push-list(@values);
-    }
-    method !push-list(::?CLASS:D: @values --> ::?CLASS:D) {
-        X::Cannot::Lazy.new(:action<push>,:what(self.^name)).throw
-          if @values.is-lazy;
-
-        self.push($_) for @values;
-        self;
     }
 
     method clone(::?CLASS:D: --> ::?CLASS:D) {
@@ -117,16 +122,32 @@ efficient stack implementation for a single-threaded use case.
 
 Defined as:
 
-    proto method new(+values --> ::?CLASS:D)
+    proto method new(+values --> Collective::Stack:D)
 
-Creates and returns a new stack with the provided values. Figuratively,
-each value is placed on top of the preceding values.
+Creates and returns a new C<Collective::Stack> with the provided values.
+Figuratively, each value is placed on top of the preceding values.
+
+=head2 method push
+
+Defined as:
+
+    proto method push(**@values is raw --> Collective::Stack:D) is nodal
+
+Puts the values on the stack and returns the modified stack.
+Autovivifies the stack if called on an undefined C<Scalar> of type
+C<Collective::Stack>. For example:
+
+    my Collective::Stack $var;
+    $var.push('a', 'b');
+    say $stack.pop(*).join(' on top of '); # OUTPUT: «b on top of a␤»
+
+Pushing more than one value at a time may not be particularly efficient.
 
 =head2 method pop
 
 Defined as:
 
-    proto method pop(::?CLASS:D: $n?) is nodal
+    proto method pop(Collective::Stack:D: $n?) is nodal
 
 Without argument, this method behaves like the corresponding C<Array>
 method: it removes and returns a value from the top of the stack, or
@@ -139,15 +160,7 @@ example:
     my $stack = Collective::Stack.new('a');
     my $seq = $stack.pop(*);
     $stack.push('b');
-    say $seq.join(' on top of '); # OUTPUT: «b on top of a␤»
-
-=head2 method push
-
-Defined as:
-
-    proto method push(::?CLASS:D: **@values is raw --> ::?CLASS:D)
-
-Puts the values on the stack and returns the modified stack.
+    say $seq.join(' on top of ');          # OUTPUT: «b on top of a␤»
 
 =head2 method clone
 

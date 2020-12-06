@@ -4,7 +4,7 @@ use Test;
 use lib 'lib';
 use Collective::Stack;
 
-plan 10;
+plan 11;
 
 my $stack;
 subtest 'create empty stack', {
@@ -107,6 +107,22 @@ subtest 'push a slip onto a stack', {
     throws-like { $stack.push(slip lazy a, b) },
       X::Cannot::Lazy, action => 'push', what => $stack.^name,
       '$stack.push(slip lazy a, b)';
+}
+
+subtest 'push onto an undefined stack', {
+    plan 3;
+
+    my Collective::Stack $stack;
+    my $a = a;
+    my $b = b;
+    cmp-ok $stack.push($a, $b), '===', $stack,
+      '$stack.push($a, $b) returns the $stack';
+
+    ok $stack.defined, '... which is autovivified';
+
+    $b = Any.new;
+    cmp-ok $stack.peek, '=:=', b,
+      '$stack.peek returns the value of $b';
 }
 
 subtest 'create a stack from a single Iterable', {
