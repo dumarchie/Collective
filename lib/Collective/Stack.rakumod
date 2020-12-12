@@ -1,37 +1,15 @@
+use Collective::LinkedList;
+
 class Collective::Stack {
-    my class Node {
-        has Mu $.value;
-        has Node $.next;
-        method !SET-SELF(Mu \value, Node \next --> Node:D) {
-            $!value := value;
-            $!next  := next;
-            self;
-        }
-
-        proto method insert(Mu $ --> Node:D) {*}
-        multi method insert(Mu \value is readonly) {
-            self.CREATE!SET-SELF(value, self);
-        }
-        multi method insert(Mu $value is rw) {
-            self.CREATE!SET-SELF($value<>, self);
-        }
-    }
-
-    # The actual stack definition
-    has Node $!top;
-    method !SET-SELF($!top) { self }
+    has $!linkedlist;
+    method !SET-SELF($!linkedlist) { self }
 
     proto method new(+values --> ::?CLASS:D) {*}
     multi method new() {
-        self.CREATE!SET-SELF(Node);
+        self.CREATE!SET-SELF(linkedlist);
     }
     multi method new(Iterable \values is readonly) {
-        X::Cannot::Lazy.new(:action<stack>).throw
-          if values.is-lazy;
-
-        my $node := Node;
-        $node := $node.insert($_) for values;
-        self.CREATE!SET-SELF($node);
+        self.CREATE!SET-SELF(linkedlist values, action =>'stack');
     }
     multi method new(**@values is raw) {
         self.new(@values);
@@ -48,7 +26,7 @@ class Collective::Stack {
         $target.push(|@values);
     }
     multi method push(::?CLASS:D: Mu \value) {
-        cas $!top, { .insert(value) };
+        cas $!linkedlist, { .insert(value) };
         self;
     }
     multi method push(::?CLASS:D: Slip:D \values) {
@@ -83,8 +61,8 @@ class Collective::Stack {
     }
     method !extract(::?CLASS:D:) {
         my $value := IterationEnd;
-        while $value =:= IterationEnd && my $node := ⚛$!top {
-            if cas($!top, $node, $node.next) =:= $node {
+        while $value =:= IterationEnd && my $node := ⚛$!linkedlist {
+            if cas($!linkedlist, $node, $node.next) =:= $node {
                 $value := $node.value;
             }
         }
@@ -92,16 +70,16 @@ class Collective::Stack {
     }
 
     method clone(::?CLASS:D: --> ::?CLASS:D) {
-        self.CREATE!SET-SELF(⚛$!top);
+        self.CREATE!SET-SELF(⚛$!linkedlist);
     }
 
     method peek(::?CLASS:D:) {
-        with ⚛$!top { .value }
+        with ⚛$!linkedlist { .value }
         else { Nil }
     }
 
     multi method Bool(::?CLASS:D: --> Bool:D) {
-        (⚛$!top).defined;
+        (⚛$!linkedlist).defined;
     }
 }
 
