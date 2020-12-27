@@ -4,19 +4,24 @@ class Collective::Stack {
     has $!linkedlist;
     method !SET-SELF($!linkedlist) { self }
 
+    sub stack(|init --> ::?CLASS:D) is export {
+        ::?CLASS.new(|init);
+    }
+
     proto method new(+values --> ::?CLASS:D) {*}
     multi method new() {
         self.CREATE!SET-SELF(linkedlist);
     }
     multi method new(Iterable \values is readonly) {
-        self.CREATE!SET-SELF(linkedlist values, action =>'stack');
+        X::Cannot::Lazy.new(:action<stack>).throw
+          if values.is-lazy;
+
+        my $list := linkedlist;
+        $list := $list.insert($_) for values;
+        self.CREATE!SET-SELF($list);
     }
     multi method new(**@values is raw) {
         self.new(@values);
-    }
-
-    sub stack(|init --> ::?CLASS:D) is export {
-        ::?CLASS.new(|init);
     }
 
     proto method push(**@values is raw --> ::?CLASS:D) is nodal {*}
@@ -60,12 +65,11 @@ class Collective::Stack {
         Seq.new(ValueConsumer.new(:&extract)).head($n);
     }
     method !extract(::?CLASS:D:) {
-        my $value := IterationEnd;
-        while $value =:= IterationEnd && my $node := ⚛$!linkedlist {
-            if cas($!linkedlist, $node, $node.next) =:= $node {
-                $value := $node.value;
-            }
-        }
+        my $value;
+        cas $!linkedlist, {
+            $value := .value;
+            .next;
+        };
         $value;
     }
 
@@ -74,12 +78,12 @@ class Collective::Stack {
     }
 
     method peek(::?CLASS:D:) {
-        with ⚛$!linkedlist { .value }
-        else { Nil }
+        my \node = ⚛$!linkedlist;
+        node ?? node.value !! Nil;
     }
 
     multi method Bool(::?CLASS:D: --> Bool:D) {
-        (⚛$!linkedlist).defined;
+        (⚛$!linkedlist).Bool;
     }
 }
 
