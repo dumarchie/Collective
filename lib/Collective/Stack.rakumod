@@ -13,12 +13,7 @@ class Collective::Stack {
         self.CREATE!SET-SELF(linkedlist);
     }
     multi method new(Iterable \values is readonly) {
-        X::Cannot::Lazy.new(:action<stack>).throw
-          if values.is-lazy;
-
-        my $list := linkedlist;
-        $list := $list.insert($_) for values;
-        self.CREATE!SET-SELF($list);
+        self.CREATE!SET-SELF(linkedlist values, :reversed);
     }
     multi method new(**@values is raw) {
         self.new(@values);
@@ -107,7 +102,7 @@ nonconcurrent use cases.
 
 Defined as:
 
-    sub stack(|init --> Collective::Stack:D) is export
+    sub stack(|init --> Collective::Stack:D)
 
 Calls L<C<Collective::Stack.new>|#method_new> with the provided arguments.
 
