@@ -1,0 +1,114 @@
+use v6;
+use Test;
+
+use lib 'lib';
+use Collective::LinkedList;
+
+plan 5;
+
+subtest 'empty linked list', {
+    plan 5;
+
+    my $list := linkedlist;
+    isa-ok $list, Collective::LinkedList, 'my $list := linkedlist';
+    cmp-ok $list.value, '=:=', IterationEnd, '$list.value';
+    cmp-ok $list.next, '=:=', $list, '$list.next';
+    cmp-ok $list.list, 'eqv', Empty.List, '$list.list';
+    nok $list, '$list.Bool';
+};
+
+subtest 'insert value into linked list', {
+    plan 6;
+
+    my $list := linkedlist;
+    my \value = Mu;
+    my $list2 = $list.insert: value;
+    isa-ok $list2, Collective::LinkedList,
+      'my $list2 = $list.insert: value';
+
+    cmp-ok $list2.value, '=:=', value, '$list2.value';
+    cmp-ok $list2.next, '=:=', $list, '$list2.next';
+    for @$list2 {
+        cmp-ok $_, '=:=', value, '$list2.iterator';
+    }
+    ok $list2, '$list2.Bool';
+
+    # assert that argument is decontainerized
+    my $value = value;
+    my $list3 = $list2.insert: $value;
+
+    $value .= new;
+    cmp-ok $list3.value, '=:=', value,
+      'my $list3 = $list2.insert: $value';
+}
+
+subtest 'default node constructor', {
+    plan 6;
+
+    my Mu $value;
+    my $list = Collective::LinkedList.new(:$value);
+    isa-ok $list, Collective::LinkedList,
+      'my $list = Collective::LinkedList.new(:$value)';
+
+    ok $list, '$list.Bool';
+
+    # assert that $value is decontainerized
+    $value .= new;
+    cmp-ok $list.value, '=:=', Mu, '$list.value';
+
+    cmp-ok $list.next, 'eqv', linkedlist, '$list.next';
+
+    # test again with a provided next node
+    my $list2 = Collective::LinkedList.new(:$value, next => $list);
+    isa-ok $list2, Collective::LinkedList,
+      'my $list2 = Collective::LinkedList.new(:$value, next => $list)';
+
+    cmp-ok $list2.next, '=:=', $list<>, '$list2.next';
+}
+
+subtest 'create linked list from Iterable', {
+    plan 6;
+
+    my $value;
+    my \values  = ($value, Any.new);
+    my $list := linkedlist values;
+    isa-ok $list, Collective::LinkedList,
+      'my $list := linkedlist values';
+
+    # assert that values are decontainerized
+    $value .= new;
+    cmp-ok $list.value, '=:=', Any, '$list.value';
+    is-deeply $list.next, linkedlist(values[1]), '$list.next';
+    is-deeply $list.list, (Any, Any.new), '$list.list';
+
+    # test the :reversed option
+    my $reversed = linkedlist values, :reversed;
+    is-deeply $reversed.list, values.reverse.list,
+      'my $reversed = linkedlist values, :reversed';
+
+    # assert that an itemized Iterable is treated as a single value
+    my $values = values;
+    my $list2 = linkedlist $values;
+    cmp-ok $list2.value, '===', values, 'my $list2 = linkedlist $values';
+}
+
+subtest 'create linked list from argument list', {
+    plan 5;
+
+    my $a;
+    my $b := Any.new;
+    my $list := linkedlist $a, $b;
+    isa-ok $list, Collective::LinkedList,
+      'my $list := linkedlist $a, $b';
+
+    # assert that values are decontainerized
+    $a .= new;
+    cmp-ok $list.value, '=:=', Any, '$list.value';
+    is-deeply $list.next, linkedlist($b), '$list.next';
+    is-deeply $list.list, (Any, Any.new), '$list.list';
+
+    # test the :reversed option
+    my $reversed = linkedlist $a, $b, :reversed;
+    is-deeply $reversed.list, ($b, $a),
+      'my $reversed = linkedlist $a, $b, :reversed';
+}
