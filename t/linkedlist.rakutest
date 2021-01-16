@@ -12,7 +12,7 @@ subtest 'empty linked list', {
     my $linked := linkedlist;
     isa-ok $linked, Collective::LinkedList, 'my $linked := linkedlist';
     cmp-ok $linked.value, '=:=', IterationEnd, '$linked.value';
-    cmp-ok $linked.next, '=:=', $linked, '$linked.next';
+    cmp-ok $linked.rest, '=:=', $linked, '$linked.rest';
     nok $linked, '$linked.Bool';
 };
 
@@ -26,7 +26,7 @@ subtest 'insert a value into a linked list', {
       'my $linked2 = $linked.insert(value)';
 
     cmp-ok $linked2.value, '=:=', value, '$linked2.value';
-    cmp-ok $linked2.next, '=:=', $linked, '$linked2.next';
+    cmp-ok $linked2.rest, '=:=', $linked, '$linked2.rest';
     ok $linked2, '$linked2.Bool';
 
     # assert that attributes are decontainerized
@@ -37,7 +37,7 @@ subtest 'insert a value into a linked list', {
 
     $value .= new;
     cmp-ok $linked3.value, '=:=', Mu, '$linked3.value';
-    cmp-ok $linked3.next, '=:=', $linked2<>, '$linked3.next';
+    cmp-ok $linked3.rest, '=:=', $linked2<>, '$linked3.rest';
 
     subtest 'linked list iterator', {
         my $iterator = $linked3.iterator;
@@ -60,16 +60,16 @@ subtest 'create a linked list from named arguments', {
     # assert that $value is decontainerized
     $value .= new;
     cmp-ok $linked.value, '=:=', Mu, '$linked.value';
-    cmp-ok $linked.next, 'eqv', linkedlist, '$linked.next';
+    cmp-ok $linked.rest, 'eqv', linkedlist, '$linked.rest';
     ok $linked, '$linked.Bool';
 
-    # test again with a provided next node
-    my $linked2 = Collective::LinkedList.new(:$value, next => $linked);
+    # test again with a provided rest
+    my $linked2 = Collective::LinkedList.new(:$value, rest => $linked);
     isa-ok $linked2, Collective::LinkedList,
-      'my $linked2 = Collective::LinkedList.new(:$value, next => $linked)';
+      'my $linked2 = Collective::LinkedList.new(:$value, rest => $linked)';
 
     cmp-ok $linked2.value, '=:=', $value<>, '$linked2.value';
-    cmp-ok $linked2.next, '=:=', $linked<>, '$linked2.next';
+    cmp-ok $linked2.rest, '=:=', $linked<>, '$linked2.rest';
 
     subtest 'linked list iterator', {
         my $iterator = $linked2.iterator;

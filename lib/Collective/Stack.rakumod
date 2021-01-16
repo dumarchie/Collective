@@ -63,7 +63,7 @@ class Collective::Stack {
         my $value;
         cas $!linkedlist, {
             $value := .value;
-            .next;
+            .rest;
         };
         $value;
     }
@@ -73,8 +73,8 @@ class Collective::Stack {
     }
 
     method peek(::?CLASS:D:) {
-        my \node = ⚛$!linkedlist;
-        node ?? node.value !! Nil;
+        my \list = ⚛$!linkedlist;
+        list ?? list.value !! Nil;
     }
 
     multi method Bool(::?CLASS:D: --> Bool:D) {
