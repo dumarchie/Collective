@@ -1,0 +1,75 @@
+use v6;
+use Test;
+
+use lib 'lib';
+use Collective::Linked;
+
+plan 3;
+
+subtest '.empty', {
+    plan 2;
+
+    my $empty = Collective::Linked.empty;
+    does-ok $empty, Collective::Linked,
+      'my $empty = Collective::Linked.empty';
+
+    nok $empty, '$empty.Bool';
+}
+
+subtest '.new', {
+    plan 8;
+
+    throws-like { Collective::Linked.new }, Exception,
+      message => /«value»/, ".new requires named parameter 'value'";
+
+    # test with a named value
+    my Mu $value;
+    my $linked = Collective::Linked.new(:$value);
+    does-ok $linked, Collective::Linked,
+      'my $linked = Collective::Linked.new(:$value)';
+
+    ok $linked, '$linked.Bool';
+
+    # assert that value is decontainerized
+    $value .= new;
+    cmp-ok $linked.value, '=:=', Mu, '$linked.value';
+    cmp-ok $linked.rest, '=:=', $linked.WHAT, '$linked.rest';
+
+    # test again with a named value and rest
+    my $linked2 = Collective::Linked.new(:$value, rest => $linked);
+    does-ok $linked2, Collective::Linked,
+      'my $linked2 = Collective::Linked.new(:$value, rest => $linked)';
+
+    cmp-ok $linked2.value, '=:=', $value<>, '$linked2.value';
+    cmp-ok $linked2.rest, '=:=', $linked<>, '$linked2.rest';
+}
+
+subtest 'linked', {
+    plan 8;
+
+    # test without arguments
+    my $empty = linked;
+    cmp-ok $empty, '===', Collective::Linked.empty,
+      'my $empty = linked';
+
+    # test with only a value
+    my Mu $value;
+    my $linked = linked($value);
+    isa-ok $linked, linked,
+      'my $linked = linked($value)';
+
+    ok $linked, '$linked.Bool';
+
+    # assert that the argument is decontainerized
+    $value .= new;
+    cmp-ok $linked.value, '=:=', Mu, '$linked.value';
+    cmp-ok $linked.rest, '=:=', $empty<>, '$linked.rest';
+
+    # test with a value and a rest
+    my $linked2 = linked($value, $linked);
+    does-ok $linked2, linked,
+      'my $linked2 = linked($value, $linked)';
+
+    cmp-ok $linked2.value, '=:=', $value<>, '$linked2.value';
+    cmp-ok $linked2.rest, '=:=', $linked<>, '$linked2.rest';
+}
