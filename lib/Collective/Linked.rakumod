@@ -1,6 +1,11 @@
 role Collective::Linked {
     has Mu $.value;
     has Collective::Linked $.rest;
+    submethod BUILD(Mu :$value!, :$rest = self.empty --> Nil) {
+        $!value := $value<>;
+        $!rest  := $rest<>;
+    }
+
     method !SET-SELF(Mu \value, \rest) {
         $!value := value;
         $!rest  := rest;
@@ -8,11 +13,6 @@ role Collective::Linked {
     }
 
     method empty() { self.WHAT }
-
-    method bless(Mu :$value!, :$rest = self.empty, *%attrinit) {
-        # Note: the BUILDALL signature is not documented...
-        self.CREATE!SET-SELF($value<>, $rest<>).BUILDALL(Empty, %attrinit);
-    }
 
     proto method insert(|) {*}
     multi method insert(::?CLASS:U: Mu \value) {
@@ -86,6 +86,15 @@ Returns the value of the C<$!value> attribute.
 
 Returns the value of the C<$!rest> attribute.
 
+=head2 submethod BUILD
+
+Defined as:
+
+    submethod BUILD(Mu :$value!, :$rest = self.empty --> Nil)
+
+Binds the C<$!value> and C<$!rest> attributes to the decontainerized
+C<$value> and C<$rest>.
+
 =head2 method !SET-SELF
 
 Defined as:
@@ -93,8 +102,8 @@ Defined as:
     method !SET-SELF(Mu \value, \rest)
 
 This private method allows a type that C<does Collective::Linked> to
-initialize the C<$!value> and C<$!rest> attributes by binding them to the
-respective arguments.
+(re)initialize the C<$!value> and C<$!rest> attributes by binding them to
+the respective arguments.
 
 =head2 method empty
 
@@ -103,19 +112,6 @@ Defined as:
     method empty()
 
 Returns the invocant's type object.
-
-=head2 method bless
-
-Defined as:
-
-    method bless(Mu :$value!, :$rest = self.empty, *%attrinit)
-
-Low-level object construction method that L<binds|#method_!SET-SELF> the
-C<Collective::Linked> attributes to the decontainerized C<$value> and
-C<$rest> before C<.BUILDALL> is called. Provided to support the L<default
-method new|https://docs.raku.org/type/Mu#method_new> while still allowing a
-class that C<does Collective::Linked> to define additional attributes and
-initialize them with a C<submethod BUILD>.
 
 =head2 method insert
 

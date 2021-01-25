@@ -10,11 +10,14 @@ class Collective::LinkedList does Collective::Linked does Iterable {
         $!rest !=:= self;
     }
 
+    multi method new( --> ::?CLASS:D) {
+        self.empty;
+    }
     multi method new(+values, *%options --> ::?CLASS:D) {
         self.empty.prepend(values, |%options);
     }
-    multi method new(*%attrinit --> ::?CLASS:D) {
-        %attrinit<value>:exists ?? self.bless(|%attrinit) !! self.empty;
+    multi method new(Mu :$value!, *%attrinit --> ::?CLASS:D) {
+        self.bless(:$value, |%attrinit);
     }
 
     multi method prepend(::?CLASS:D: +values, :$reversed --> ::?CLASS:D) {
@@ -101,14 +104,15 @@ Returns C<False> if and only if the linked list is empty.
 
 Defined as:
 
+    multi method new( --> ::?CLASS:D)
     multi method new(+values, *%options --> ::?CLASS:D)
-    multi method new(*%attrinit --> ::?CLASS:D)
+    multi method new(Mu :$value!, *%attrinit --> ::?CLASS:D)
 
 Creates a new C<Collective::LinkedList>. This is an L<empty|#method_empty>
-list if neither iterable C<values> nor a named C<value> is provided. If
+list if neither positional C<values> nor a named C<$value> is provided. If
 C<values> are provided, they are L<prepended|#method_prepend> to the empty
-list. If a named C<value> is provided instead, the named arguments are
-L<blessed|#method_bless> into a new linked list node.
+list. If a named C<$value> is provided instead, the arguments are used to
+L<build|https://docs.raku.org/routine/bless> a new linked list node.
 
 =head2 method prepend
 
@@ -158,16 +162,6 @@ sentinel value C<IterationEnd> if the list is empty.
 
 Returns the rest of the linked list. Note that this is the linked list self
 if the list is empty.
-
-=head2 method bless
-
-Defined as:
-
-    method bless(Mu :$value!, :$rest = self.empty, *%attrinit)
-
-Creates a new linked list node and uses the named arguments to initialize
-its attributes. A L<$value> is required, but the optional C<$rest>
-defaults to the L<empty|#method_empty> linked list.
 
 =head2 method insert
 
