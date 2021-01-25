@@ -61,10 +61,9 @@ class Collective::Stack {
     }
     method !extract(::?CLASS:D:) {
         my $node;
-        cas $!linkedlist, {
-            $node := $_;
-            .rest;
-        };
+        repeat {
+            $node := ⚛$!linkedlist;
+        } until cas($!linkedlist, $node, $node.rest) === $node;
         $node.value;
     }
 
