@@ -90,7 +90,7 @@ Defined as:
     method empty( --> ::?CLASS:D)
 
 Returns a sentinel node representing an empty linked list. This node has
-value C<IterationEnd> and its C<.rest> is the empty linked list C<self>.
+value C<IterationEnd> and its C<.rest> is the empty linked list self.
 
 =head2 method Bool
 
@@ -167,14 +167,10 @@ if the list is empty.
 
 Defined as:
 
-    multi method insert(::?CLASS:U: Mu \value)
-    multi method insert(::?CLASS:U: Mu $value is rw)
-    multi method insert(::?CLASS:D: Mu \value)
-    multi method insert(::?CLASS:D: Mu $value is rw)
+    proto method insert(Mu \value --> ::?CLASS:D)
 
-Returns a I<new> C<Collective::LinkedList> with the provided C<value> or
-decontainerized C<$value> at the head. The L<rest|#method_rest> of the list
-is the invocant self, or the L<empty|#method_empty> list if the invocant is
-not defined.
+Returns a I<new> C<Collective::LinkedList> with the decontainerized
+C<value> at the head. The L<rest|#method_rest> of the list is the invocant
+self, or the L<empty|#method_empty> list if the invocant is not defined.
 
 =end pod

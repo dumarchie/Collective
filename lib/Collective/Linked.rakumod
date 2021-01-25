@@ -14,7 +14,7 @@ role Collective::Linked {
 
     method empty() { self.WHAT }
 
-    proto method insert(|) {*}
+    proto method insert(Mu \value --> ::?CLASS:D) {*}
     multi method insert(::?CLASS:U: Mu \value) {
         self.CREATE!SET-SELF(value, self.empty);
     }
@@ -117,14 +117,11 @@ Returns the invocant's type object.
 
 Defined as:
 
-    multi method insert(::?CLASS:U: Mu \value)
-    multi method insert(::?CLASS:U: Mu $value is rw)
-    multi method insert(::?CLASS:D: Mu \value)
-    multi method insert(::?CLASS:D: Mu $value is rw)
+    proto method insert(Mu \value --> ::?CLASS:D)
 
 Creates and returns a new object with the C<$!value> attribute bound to the
-provided C<value> or decontainerized C<$value>. If called on a type object,
-the C<$!rest> attribute is bound to the C<.empty> representation of the
-class. Otherwise the C<$!rest> attribute is bound to the invocant C<self>.
+decontainerized C<value>. If called on a type object, the C<$!rest>
+attribute is bound to the C<.empty> representation of the class. Otherwise
+the C<$!rest> attribute is bound to the invocant self.
 
 =end pod
