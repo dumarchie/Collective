@@ -17,15 +17,15 @@ sub shares(Int $ops, Int $workers, Str $type) {
     @ranges;
 }
 
-sub producers(Int() $ops, Int() $workers, :$batch) {
+sub producers(Int() $ops, Int() $workers, :$push) {
     my @workers;
     for shares($ops, $workers, 'producer') -> @values {
         my $id    = @workers + 1;
         my $share = @values.max - @values.min;
 
-        if $batch > 1 {
+        if $push > 1 {
             my @slips;
-            @slips[@slips.elems] = .Slip for @values.batch($batch);
+            @slips[@slips.elems] = .Slip for @values.batch($push);
             @values := @slips;
         }
 
@@ -43,7 +43,7 @@ sub producers(Int() $ops, Int() $workers, :$batch) {
     @workers;
 }
 
-sub consumers(Int() $ops, Int() $workers, :$pop-n) {
+sub consumers(Int() $ops, Int() $workers, :$pop-seq) {
     my @workers;
     my &format = -> $id, $count, $consumed {
        "Consumer $id needed %0.3f seconds and $count calls"
@@ -54,7 +54,7 @@ sub consumers(Int() $ops, Int() $workers, :$pop-n) {
         my $share = @range.max - @range.min;
 
         my int $consumed;
-        @workers.push: $pop-n ?? -> $stack {
+        @workers.push: $pop-seq ?? -> $stack {
             say "Start consumer $id";
             my int $calls;
             while $consumed < $share {
@@ -83,9 +83,9 @@ sub timer(&code, |args) {
 sub MAIN(
     Int   $elems?    is copy, #= number of values to push and pop
     Int  :$producers is copy, #= number of workers that push values
-    Int  :$batch = 1,         #= number of values to push at a time
+    Int  :$push = 1,          #= number of values to push at a time
     Int  :$consumers is copy, #= number of workers that pop values
-    Bool :$pop-n,             #= pop sequences of values
+    Bool :$pop-seq,           #= pop sequences of values
     Bool :$reverse            #= start consumers before producers
 ) {
     my \cores = $*KERNEL.cpu-cores - 1;
@@ -99,8 +99,8 @@ sub MAIN(
         $consumers   = cores - $producers;
     }
 
-    my @workers   = producers($elems, $producers, :$batch);
-    my @consumers = consumers($elems, $consumers, :$pop-n);
+    my @workers   = producers($elems, $producers, :$push);
+    my @consumers = consumers($elems, $consumers, :$pop-seq);
     $reverse ?? @workers.prepend(@consumers)
              !! @workers.append(@consumers);
 

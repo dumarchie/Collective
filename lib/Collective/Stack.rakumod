@@ -60,12 +60,12 @@ class Collective::Stack {
         Seq.new(ValueConsumer.new(:&extract)).head($n);
     }
     method !extract(::?CLASS:D:) {
-        my $value;
+        my $node;
         cas $!linkedlist, {
-            $value := .value;
+            $node := $_;
             .rest;
         };
-        $value;
+        $node.value;
     }
 
     method clone(::?CLASS:D: --> ::?CLASS:D) {
